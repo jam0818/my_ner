@@ -26,13 +26,16 @@ class MyDataset(Dataset, ABC):
         self.special_to_index: Dict[str, int] = {token: max_seq_len - i - 1 for i, token
                                                  in enumerate(reversed(special_tokens))}
         self.sents, self.labels = self.load(path)
+        # 事前に作ったものを読み込む方が安全
+        label_list = get_label_list(self.labels)
+        self.label_to_id = {l: i for i, l in enumerate(label_list)}
 
     def __len__(self) -> int:  # len(dataset) でデータ数を返す
         return len(self.labels)
 
     def __getitem__(self,
                     idx: int) -> dict[str, torch.tensor]:
-        outputs = self.tokenize_and_align_labels()
+        outputs = self.tokenize_and_align_labels(self.sents[idx], self.labels[idx])
         input_ids = torch.tensor(outputs['input_ids'])
         attention_mask = torch.tensor(outputs['attention_mask'])
         labels = torch.tensor(outputs['labels'])
@@ -58,38 +61,27 @@ class MyDataset(Dataset, ABC):
         return sents, labels
 
     # Tokenize all texts and align the labels with them.
-    def tokenize_and_align_labels(self):
+    def tokenize_and_align_labels(self, sent, label):
         tokenized_inputs = self.tokenizer(
-            self.sents,
+            sent,
             padding='max_length',
             truncation=True,
             max_length=self.max_seq_len,
             # We use this argument because the texts in our dataset are lists of words (with a label for each word).
             is_split_into_words=True,
         )
-        labels = []
-        label_list = get_label_list(self.labels)
-        label_to_id = {l: i for i, l in enumerate(label_list)}
-        for i, label in enumerate(self.labels):
-            word_ids = range(self.max_seq_len)
-            previous_word_idx = None
-            label_ids = []
-            for word_idx in word_ids:
-                # Special tokens have a word id that is None. We set the label to -100 so they are automatically
-                # ignored in the loss function.
-                if word_idx is None:
-                    label_ids.append(-100)
-                # We set the label for the first token of each word.
-                elif word_idx != previous_word_idx:
-                    label_ids.append(label_to_id[label[word_idx]])
-                # For the other tokens in a word, we set the label to either the current label or -100, depending on
-                # the label_all_tokens flag.
-                else:
-                    label_ids.append(label_to_id[label[word_idx]])
-                previous_word_idx = word_idx
+        # word_ids = range(self.max_seq_len)
+        input_tokens = self.tokenizer.convert_ids_to_tokens(tokenized_inputs['input_ids'])
+        label_ids = []
+        for idx, input_token in enumerate(input_tokens):
+            # Special tokens have a word id that is None. We set the label to -100 so they are automatically
+            # ignored in the loss function.
+            if input_token.startswith('##') or input_token in {'[CLS]', '[SEP]', '[PAD]'}:
+                label_ids.append(-100)
+            else:
+                label_ids.append(self.label_to_id[label[idx]])
 
-            labels.append(label_ids)
-        tokenized_inputs["labels"] = labels
+        tokenized_inputs["labels"] = label_ids
         return tokenized_inputs
 
 
@@ -99,7 +91,7 @@ class MyDataLoader(DataLoader):
                  tokenizer: BertTokenizer,
                  max_seq_len: int = 128,
                  shuffle: bool = False,
-                 batch_size: int = 1,
+                 batch_size: int = 2,
                  num_workers: int = 0, ) -> None:
         dataset = MyDataset
         self.dataset = dataset(path, tokenizer, max_seq_len)

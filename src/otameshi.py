@@ -14,17 +14,16 @@ def main():
     #                     default="/home/nkawamura/models/bert/NICT_pretrained_models/NICT_BERT-base_JapaneseWikipedia_32K_BPE",
     #                     help='pretrained BERT model path')
     args = parser.parse_args()
-
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    path = '/home/nkawamura/models/bert/NICT_BERT-base_JapaneseWikipedia_32K_BPE'
+    tokenizer = BertTokenizer.from_pretrained(path)
     tmp_data_loader = MyDataLoader(args.data_path, tokenizer)
     tmp_bar = tqdm(tmp_data_loader)
-    model = MyBertForTokenClassification()
+    model = MyBertForTokenClassification(path)
     for batch_idx, batch in enumerate(tmp_bar):
         output = model(input_ids=batch['input_ids'],
                        attention_mask=batch['attention_mask'],
                        labels=batch['labels'])
-    # print(dataset.sents)
-    # print(dataset.labels)
+
     # print(dataset[0]['label'])
         print(output)
 

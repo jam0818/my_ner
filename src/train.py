@@ -14,9 +14,43 @@ from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 from transformers import BertTokenizer, BertConfig, AdamW, get_linear_schedule_with_warmup, logging
 
-from dataset import MyDataset
-from model import BertForTokenClassification
+from dataset import MyDataset, MyDataLoader
+from model import MyBertForTokenClassification
 
 
-def tarin(model: BertForTokenClassification,
-          train_data_loader: )
+def train(model: MyBertForTokenClassification,
+          train_data_loader: MyDataLoader,
+          optimizer: AdamW,
+          scheduler,
+          device) -> MyBertForTokenClassification:
+
+    total_loss = 0
+    train_bar = tqdm(train_data_loader)
+
+    for batch_idx, batch in enumerate(train_bar):
+        batch_size = len(batch['input_ids'])
+        batch = {key: value.to(device) for key, value in batch.items()}
+
+        # forward
+        output = model(input_ids=batch['input_ids'],
+                       attention_mask=batch['attention_mask']).to(device)
+
+        loss = ce_loss(output, batch['label'])
+
+        # backward
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+
+        total_loss += loss.item() * batch_size
+
+        train_bar.set_postfix({
+            'lr': scheduler.get_last_lr()[0],
+            'loss': round(total_loss / (batch_idx + 1), 3)
+        })
+
+    total_loss = total_loss / len(train_data_loader.dataset)
+    print(f'train_loss={total_loss / (batch_idx + 1):.3f}')
+
+    return model

@@ -37,13 +37,13 @@ class TokenClassifierOutput(ModelOutput):
 
 
 class MyBertForTokenClassification(nn.Module):
-    def __init__(self):
+    def __init__(self, path):
         super().__init__()
-        self.num_labels = 128
+        self.num_labels = 3
 
-        self.bert = BertModel.from_pretrained('bert-base-uncased', add_pooling_layer=False)
+        self.bert = BertModel.from_pretrained(path ,add_pooling_layer=False)
         self.dropout = nn.Dropout(self.bert.config.hidden_dropout_prob)
-        self.classifier = nn.Linear(self.bert.config.hidden_size, self.num_labels)
+        self.classifier = nn.Linear(self.bert.config.hidden_size, 3)
 
     def forward(self,
                 input_ids=None,
