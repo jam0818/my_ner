@@ -29,6 +29,7 @@ class MyDataset(Dataset, ABC):
         # 事前に作ったものを読み込む方が安全
         label_list = get_label_list(self.labels)
         self.label_to_id = {l: i for i, l in enumerate(label_list)}
+        self.id2label = {i: l for i, l in enumerate(label_list)}
 
     def __len__(self) -> int:  # len(dataset) でデータ数を返す
         return len(self.labels)

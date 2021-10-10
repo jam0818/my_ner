@@ -21,21 +21,22 @@ from model import MyBertForTokenClassification
 def train(model: MyBertForTokenClassification,
           train_data_loader: MyDataLoader,
           optimizer: AdamW,
-          scheduler,
-          device) -> MyBertForTokenClassification:
+          scheduler) -> MyBertForTokenClassification:
 
     total_loss = 0
     train_bar = tqdm(train_data_loader)
 
     for batch_idx, batch in enumerate(train_bar):
         batch_size = len(batch['input_ids'])
-        batch = {key: value.to(device) for key, value in batch.items()}
+        # gpuに渡す時
+        batch = {key: value for key, value in batch.items()}
 
         # forward
         output = model(input_ids=batch['input_ids'],
-                       attention_mask=batch['attention_mask']).to(device)
+                       attention_mask=batch['attention_mask'],
+                       labels=batch['labels'])
 
-        loss = ce_loss(output, batch['label'])
+        loss = output.loss
 
         # backward
         optimizer.zero_grad()
