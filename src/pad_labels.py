@@ -20,14 +20,16 @@ def json2dict(path, max_seq_len):
 
 
 def main():
-    path = '/home/nkawamura/python_project/my_ner/data/samples.jsonl'
-    sents, labels = json2dict(path, 128)
-    with open('/home/nkawamura/python_project/my_ner/data/samples_pad.jsonl', 'w') as f:
-        for sent, label in zip(sents, labels):
-            tmp_dict = {'words': sent, 'ner': label}
-            tmp = json.dumps(tmp_dict, ensure_ascii=False)
-            f.write(tmp)
-            f.write('\n')
+    split_list = ['train', 'dev', 'test']
+    for split in split_list:
+        path = f'/mnt/berry/home/kawamura/local_repos/covid-19-twitter-analysis/data/dataset/for_run_ner/{split}_topic_1000.json'
+        sents, labels = json2dict(path, 128)
+        with open(f'/mnt/berry/home/kawamura/local_repos/covid-19-twitter-analysis/data/dataset/for_my_ner/{split}_topic_1000.json', 'w') as f:
+            for sent, label in zip(sents, labels):
+                tmp_dict = {'words': sent, 'ner': label}
+                tmp = json.dumps(tmp_dict, ensure_ascii=False)
+                f.write(tmp)
+                f.write('\n')
 
 
 if __name__ == '__main__':

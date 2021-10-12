@@ -37,11 +37,16 @@ def main():
 
     for epoch in range(args.num_epochs):
         model.train()
-        model = train(model, train_data_loader, optimizer, scheduler)
+        model = train(model, train_data_loader, optimizer, scheduler, device='cpu')
 
         model.eval()
-        score = evaluate(model, dev_data_loader)
-        print(f'f1 score: {score}')
+        output_dict = evaluate(model, dev_data_loader, test=True, device='cpu')
+        for k, values in output_dict.items():
+            if k == 'score':
+                print(f'f1 score: {values}')
+            else:
+                for idx, val in enumerate(values):
+                    print(f"[{idx}] {k}: {' '.join(val)}")
 
         # torch.save(model.state_dict(), save_path / f'checkpoint_{epoch + 1}.pth')
         # if score > best_score:

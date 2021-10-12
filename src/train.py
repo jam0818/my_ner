@@ -21,7 +21,8 @@ from model import MyBertForTokenClassification
 def train(model: MyBertForTokenClassification,
           train_data_loader: MyDataLoader,
           optimizer: AdamW,
-          scheduler) -> MyBertForTokenClassification:
+          scheduler,
+          device) -> MyBertForTokenClassification:
 
     total_loss = 0
     train_bar = tqdm(train_data_loader)
@@ -29,7 +30,7 @@ def train(model: MyBertForTokenClassification,
     for batch_idx, batch in enumerate(train_bar):
         batch_size = len(batch['input_ids'])
         # gpuに渡す時
-        batch = {key: value for key, value in batch.items()}
+        batch = {key: value.to(device) for key, value in batch.items()}
 
         # forward
         output = model(input_ids=batch['input_ids'],

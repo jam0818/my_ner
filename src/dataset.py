@@ -19,7 +19,9 @@ class MyDataset(Dataset, ABC):
                  path: str,
                  tokenizer: BertTokenizer,
                  max_seq_len: int = 128,
-                 special_tokens: typing.List[str] = ['政府', '大衆']) -> None:
+                 special_tokens=None) -> None:
+        if special_tokens is None:
+            special_tokens = ['政府', '大衆']
         self.max_seq_len = max_seq_len
         self.tokenizer = tokenizer
         self.special_token = special_tokens
@@ -71,16 +73,36 @@ class MyDataset(Dataset, ABC):
             # We use this argument because the texts in our dataset are lists of words (with a label for each word).
             is_split_into_words=True,
         )
-        # word_ids = range(self.max_seq_len)
+
+        # convert str labels to int type
         input_tokens = self.tokenizer.convert_ids_to_tokens(tokenized_inputs['input_ids'])
         label_ids = []
-        for idx, input_token in enumerate(input_tokens):
+        idx = 0
+        for input_token in input_tokens:
             # Special tokens have a word id that is None. We set the label to -100 so they are automatically
             # ignored in the loss function.
             if input_token.startswith('##') or input_token in {'[CLS]', '[SEP]', '[PAD]'}:
                 label_ids.append(-100)
             else:
                 label_ids.append(self.label_to_id[label[idx]])
+                idx += 1
+
+        # # add special tokens
+        # tokenized_inputs_special = self.tokenizer(self.special_token,
+        #                                           padding=False,
+        #                                           truncation=True,
+        #                                           is_split_into_words=True, )
+        # special_token_ids = {}
+        # special_token_attention_masks = {}
+        # input_special_tokens = self.tokenizer.convert_ids_to_tokens(tokenized_inputs_special['input_ids'])
+        # for idx, input_special_token in enumerate(input_special_tokens):
+        #     if not (input_special_token.startswith('##') or input_special_token in {'[CLS]', '[SEP]', '[PAD]'}):
+        #         special_token_ids[input_special_token] = tokenized_inputs_special['input_ids'][idx]
+        #         special_token_attention_masks[input_special_token] = tokenized_inputs_special['attention_mask'][idx]
+        # for special_token in self.special_token:
+        #     tokenized_inputs['input_ids'][self.special_to_index[special_token]] = special_token_ids[special_token]
+        #     tokenized_inputs['attention_mask'][self.special_to_index[special_token]] = special_token_attention_masks[special_token]
+        #     label_ids[self.special_to_index[special_token]] = self.label_to_id[label[self.special_to_index[special_token]]]
 
         tokenized_inputs["labels"] = label_ids
         return tokenized_inputs

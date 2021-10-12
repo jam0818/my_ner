@@ -5,7 +5,7 @@
       <paths name="kawamura@lotus.kuee.kyoto-u.ac.jp:22">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/kawamura/my_ner" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
