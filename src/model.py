@@ -39,12 +39,16 @@ class TokenClassifierOutput(ModelOutput):
 class MyBertForTokenClassification(nn.Module):
     def __init__(self,
                  path,
-                 num_labels: int = 3):
+                 max_seq_len: int = 128,
+                 num_labels: int = 3,
+                 num_heads: int = 1):
         super().__init__()
         self.num_labels = num_labels
+        self.num_heads = num_heads
+        self.max_seq_len = max_seq_len
         self.bert = BertModel.from_pretrained(path, add_pooling_layer=False)
         self.dropout = nn.Dropout(self.bert.config.hidden_dropout_prob)
-        self.classifier = nn.Linear(self.bert.config.hidden_size, self.num_labels)
+        self.classifier = nn.Linear(self.bert.config.hidden_size, self.num_labels, self.num_heads)
 
     def forward(self,
                 input_ids=None,
@@ -65,18 +69,15 @@ class MyBertForTokenClassification(nn.Module):
 
         sequence_output = self.dropout(sequence_output)
         logits = self.classifier(sequence_output)
-        loss = 0
+        loss = None
         if labels is not None:
             loss_fct = CrossEntropyLoss()
             # Only keep active parts of the loss
             if attention_mask is not None:
                 active_loss = attention_mask.view(-1) == 1
-                for l in labels:
-                    active_logits = logits.view(-1, self.num_labels)
-                    active_labels = torch.where(
-                        active_loss, l.view(-1), torch.tensor(loss_fct.ignore_index).type_as(l)
-                    )
-                    loss += loss_fct(active_logits, active_labels)
+                active_logits = logits.view(-1)
+                active_labels = torch.where(active_loss, labels.view(-1), torch.tensor(loss_fct.ignore_index).type_as(labels))
+                loss = loss_fct(active_logits, active_labels)
             else:
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 

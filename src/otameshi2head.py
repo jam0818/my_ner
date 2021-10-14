@@ -27,7 +27,7 @@ def main():
     tokenizer = BertTokenizer.from_pretrained(path)
     dataset = MyDataset2heads
     train_data_loader = MyDataLoader(args.data_path, tokenizer, dataset)
-    model = MyBertForTokenClassification(path, num_labels=5)
+    model = MyBertForTokenClassification(path, num_labels=3)
     for idx, batch in enumerate(tqdm(train_data_loader)):
         output = model(input_ids=batch['input_ids'],
                        attention_mask=batch['attention_mask'],

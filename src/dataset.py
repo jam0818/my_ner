@@ -123,8 +123,12 @@ class MyDataset2heads(Dataset, ABC):
                                                  in enumerate(reversed(special_tokens))}
         self.sents, self.labels = self.load(path)
         # # 事前に作ったものを読み込む方が安全
-        self.label_to_id = {'B-TOPIC': 0, 'I-TOPIC': 1, 'B-TARGET': 2, 'I-TARGET': 3, 'O': 4}
-        self.id2label = {v: k for k, v in self.label_to_id.items()}
+        self.id2label = {}
+        self.label_to_id = {}
+        for idx, label in enumerate([[l[i] for l in self.labels] for i in range(len(self.labels[0]))]):
+            label_list = get_label_list(label)
+            self.label_to_id[idx] = {l: i for i, l in enumerate(label_list)}
+            self.id2label[idx] = {l: i for i, l in enumerate(label_list)}
 
     def __len__(self) -> int:  # len(dataset) でデータ数を返す
         return len(self.labels)
@@ -177,7 +181,7 @@ class MyDataset2heads(Dataset, ABC):
                 if input_token.startswith('##') or input_token in {'[CLS]', '[SEP]', '[PAD]'}:
                     label_ids.append(-100)
                 else:
-                    label_ids.append(self.label_to_id[l[idx]])
+                    label_ids.append(self.label_to_id[i][l[idx]])
                     idx += 1
 
             # add special tokens
@@ -196,7 +200,7 @@ class MyDataset2heads(Dataset, ABC):
                 tokenized_inputs['input_ids'][self.special_to_index[special_token]] = special_token_ids[special_token]
                 tokenized_inputs['attention_mask'][self.special_to_index[special_token]] = special_token_attention_masks[special_token]
                 if i != 0:
-                    label_ids[self.special_to_index[special_token]] = self.label_to_id[l[self.special_to_index[special_token]]]
+                    label_ids[self.special_to_index[special_token]] = self.label_to_id[i][l[self.special_to_index[special_token]]]
             label_ids_ls.append(label_ids)
 
         tokenized_inputs["labels"] = label_ids_ls
