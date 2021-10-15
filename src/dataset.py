@@ -108,7 +108,7 @@ class MyDataset(Dataset, ABC):
         return tokenized_inputs
 
 
-class MyDataset2heads(Dataset, ABC):
+class MyDataset2heads(Dataset):
     def __init__(self,
                  path: str,
                  tokenizer: BertTokenizer,
@@ -128,7 +128,7 @@ class MyDataset2heads(Dataset, ABC):
         for idx, label in enumerate([[l[i] for l in self.labels] for i in range(len(self.labels[0]))]):
             label_list = get_label_list(label)
             self.label_to_id[idx] = {l: i for i, l in enumerate(label_list)}
-            self.id2label[idx] = {l: i for i, l in enumerate(label_list)}
+            self.id2label[idx] = {i: l for i, l in enumerate(label_list)}
 
     def __len__(self) -> int:  # len(dataset) でデータ数を返す
         return len(self.labels)
@@ -211,7 +211,7 @@ class MyDataLoader(DataLoader):
     def __init__(self,
                  path: str,
                  tokenizer: BertTokenizer,
-                 dataset,
+                 dataset: Dataset,
                  max_seq_len: int = 128,
                  shuffle: bool = False,
                  batch_size: int = 2,

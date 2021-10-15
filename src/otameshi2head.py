@@ -3,7 +3,7 @@ from tqdm import tqdm
 from dataset import MyDataset, MyDataLoader, MyDataset2heads
 from argparse import ArgumentParser
 from transformers import BertTokenizer, get_linear_schedule_with_warmup, AdamW
-from model import MyBertForTokenClassification
+from model import MyBertForTokenClassification, BertForTokenClassification2Heads
 from src.evaluate import evaluate
 from train import train
 
@@ -27,11 +27,20 @@ def main():
     tokenizer = BertTokenizer.from_pretrained(path)
     dataset = MyDataset2heads
     train_data_loader = MyDataLoader(args.data_path, tokenizer, dataset)
-    model = MyBertForTokenClassification(path, num_labels=3)
-    for idx, batch in enumerate(tqdm(train_data_loader)):
-        output = model(input_ids=batch['input_ids'],
-                       attention_mask=batch['attention_mask'],
-                       labels=batch['labels'])
+    dev_data_loader = MyDataLoader(args.data_path, tokenizer, dataset)
+    model = BertForTokenClassification2Heads(path, num_labels=3)
+    optimizer = AdamW(filter(lambda x: x.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.weight_decay)
+    num_training_steps = len(train_data_loader) * args.num_epochs
+    num_warmup_steps = num_training_steps * args.warmup_proportion
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
+
+    for epoch in range(args.num_epochs):
+        model.train()
+        model = train(model, train_data_loader, optimizer, scheduler, device='cpu')
+
+        model.eval()
+        output_dict = evaluate(model, dev_data_loader, device='cpu')
+        print(output_dict)
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ from socket import gethostname
 
 import torch
 import torch.distributed as dist
+from torch import nn
 from torch.nn.functional import mse_loss as l2_loss
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.dataloader import DataLoader
@@ -18,11 +19,11 @@ from dataset import MyDataset, MyDataLoader
 from model import MyBertForTokenClassification
 
 
-def train(model: MyBertForTokenClassification,
-          train_data_loader: MyDataLoader,
+def train(model: nn.Module,
+          train_data_loader: DataLoader,
           optimizer: AdamW,
           scheduler,
-          device) -> MyBertForTokenClassification:
+          device) -> nn.Module:
 
     total_loss = 0
     train_bar = tqdm(train_data_loader)
@@ -37,7 +38,7 @@ def train(model: MyBertForTokenClassification,
                        attention_mask=batch['attention_mask'],
                        labels=batch['labels'])
 
-        loss = output.loss
+        loss = output.loss['topic'] + output.loss['target']
 
         # backward
         optimizer.zero_grad()
@@ -45,7 +46,7 @@ def train(model: MyBertForTokenClassification,
         optimizer.step()
         scheduler.step()
 
-        total_loss += loss.item() * batch_size
+        total_loss += (loss.item() * batch_size) / 2
 
         train_bar.set_postfix({
             'lr': scheduler.get_last_lr()[0],
