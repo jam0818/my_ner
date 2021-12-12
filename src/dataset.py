@@ -329,11 +329,11 @@ class TwitterDataset(Dataset):
             
         # For sentiment analysis
         sent = tweet.tokenized_sents
-        SA_output = self.tokenizer(sent,
-                                   padding='max_length',
-                                   truncation=True,
-                                   max_length=self.max_seq_length,
-                                   return_tensors='pt')
+        SA_output = self.SA_tokenizer(sent,
+                                      padding='max_length',
+                                      truncation=True,
+                                      max_length=self.max_seq_length,
+                                      return_tensors='pt')
 
         features = {
             "input_ids": input_ids,
