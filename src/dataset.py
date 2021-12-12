@@ -249,6 +249,7 @@ class TwitterDataset(Dataset):
             self,
             path: str,
             model_name_or_path: str,
+            sa_model_path: str,
             max_seq_length: int = 128,
             special_tokens=None,
             filter_fns: typing.Optional[typing.List[typing.Callable[[Tweet], bool]]] = None,
@@ -261,6 +262,9 @@ class TwitterDataset(Dataset):
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path, do_lower_case=False, tokenize_chinese_chars=False
         )
+        self.SA_tokenizer = BertTokenizer.from_pretrained(sa_model_path,
+                                                          do_lower_case=False,
+                                                          do_basic_tokenize=False)
         self.max_seq_length = max_seq_length
         self.special_token = special_tokens
         if self.special_token is not None:
@@ -322,14 +326,24 @@ class TwitterDataset(Dataset):
             attention_mask[i] = 1
             # targetのみ特殊トークンを見る
             labels_ls[self.key2id['target']][i] = 0
+            
+        # For sentiment analysis
+        sent = tweet.tokenized_sents
+        SA_output = self.tokenizer(sent,
+                                   padding='max_length',
+                                   truncation=True,
+                                   max_length=self.max_seq_length,
+                                   return_tensors='pt')
 
         features = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "token_type_ids": token_type_ids,
+            "inputs": {key: SA_output[key].squeeze(0) for key in ['input_ids', 'attention_mask', 'token_type_ids']},
             "labels": labels_ls
         }
         features.update(dataclasses.asdict(tweet))
+
         return features
 
 def filter_by_timestamp(from_: str = "", to: str = "") -> typing.Callable[[Tweet], bool]:
